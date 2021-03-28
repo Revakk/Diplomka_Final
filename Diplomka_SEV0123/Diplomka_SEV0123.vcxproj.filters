@@ -45,7 +45,7 @@
     <ClCompile Include="Infector\Infector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Attacker\Attackercpp.cpp">
+    <ClCompile Include="Attacker\Attacker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

