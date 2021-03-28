@@ -45,6 +45,9 @@
     <ClCompile Include="Infector\Infector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Attacker\Attackercpp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

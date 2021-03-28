@@ -147,6 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Attacker\Attackercpp.cpp" />
     <ClCompile Include="Client\Client.cpp" />
     <ClCompile Include="Infector\Infector.cpp" />
     <ClCompile Include="NeuralNetwork\Connection.cpp" />
