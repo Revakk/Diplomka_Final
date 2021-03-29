@@ -51,9 +51,6 @@ void Infector::write_file(std::filesystem::path p)
     {
         inf_file << f.first << ',' << f.second << '\n';
     }
-
-
-
     inf_file.close();
 }
 
@@ -73,7 +70,6 @@ std::filesystem::path Infector::get_path_by_index(int index)
             break;
         }
     }
-
 }
 
 std::string Infector::get_exe_name(const std::filesystem::path& p) const

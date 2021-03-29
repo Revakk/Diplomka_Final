@@ -20,8 +20,15 @@ namespace PE
 		bool is_section_new = false;
 		bool signature_verified = false;
 		DWORD shellcode_index = 0;
+		
 
 	public:
+		static std::string get_exe_name(const std::filesystem::path& p);
+		PIMAGE_SECTION_HEADER get_first_header() { return first_section_header; };
+		LPBYTE get_file_map_view() { return file_map_view; };
+		static bool is_file_running(std::filesystem::path p);
+		PIMAGE_NT_HEADERS get_nt_header() const { return nt_header; };
+		DWORD get_oep() const { return original_entry_point; };
 		PE_file(std::filesystem::path);
 		~PE_file();
 		void map_file();

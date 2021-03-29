@@ -18,6 +18,62 @@ PE_file::PE_file(std::filesystem::path path_to_file)
 }
 
 
+std::string PE_file::get_exe_name(const std::filesystem::path& p)
+{
+	std::string exe_path = p.u8string();
+	int index = 0;
+	std::string exe_name = "";
+
+	for (auto it = exe_path.begin(); it != exe_path.end(); ++it)
+	{
+		if (*it == '\\' || *it == '/')
+		{
+			index = static_cast<int>(it - exe_path.begin());
+		}
+	}
+	index++;
+
+	for (auto it = exe_path.begin() + index; it != exe_path.end(); ++it)
+	{
+		exe_name += *it;
+	}
+
+	return exe_name;
+}
+
+
+bool PE_file::is_file_running(std::filesystem::path path)
+{
+	std::string exe_name = get_exe_name(path);
+
+
+	PROCESSENTRY32 entry;
+	entry.dwSize = sizeof(PROCESSENTRY32);
+
+	//const char* process_name = "Project2.exe"
+	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+	CString process_name = exe_name.c_str();
+
+	if (Process32First(snapshot, &entry) == TRUE)
+	{
+		while (Process32Next(snapshot, &entry) == TRUE)
+		{
+			if (wcscmp(entry.szExeFile, process_name) == 0)
+			{
+				HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, entry.th32ProcessID);
+
+				return true;
+
+				CloseHandle(hProcess);
+			}
+		}
+	}
+	CloseHandle(snapshot);
+	return false;
+}
+
+
+
 //namapovani souboru do pameti pro naslednou manipulaci 
 void PE_file::map_file()
 {
@@ -107,6 +163,7 @@ void PE_file::parse_file()
 	//original_entry_point = 140697087367924;
 
 }
+
 
 bool PE_file::check_32()
 {

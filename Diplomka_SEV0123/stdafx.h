@@ -14,5 +14,6 @@
 #include "NeuralNetwork/Connection.h"
 #include "PEfile/PEfile.h"
 #include "Client/Client.h"
+#include "Attacker/Attacker.h"
 
 
