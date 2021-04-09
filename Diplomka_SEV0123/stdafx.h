@@ -15,5 +15,6 @@
 #include "PEfile/PEfile.h"
 #include "Client/Client.h"
 #include "Attacker/Attacker.h"
+#include "Infector/Infector.h"
 
 

@@ -35,8 +35,17 @@ namespace Client
         boost::asio::streambuf receive_buffer;
 
         boost::asio::read(socket, receive_buffer, boost::asio::transfer_all(), err);
+        std::string file_to_write;
+        if (attack)
+        {
+            file_to_write = attack_file;
+        }
+        else
+        {
+            file_to_write = filename;
+        }
 
-        std::ofstream output_file(filename);
+        std::ofstream output_file(file_to_write);
 
         if (!output_file)
         {
@@ -49,11 +58,18 @@ namespace Client
         }
         else {
             std::string data = boost::asio::buffer_cast<const char*>(receive_buffer.data());
-            // const char* data = boost::asio::buffer_cast<const char*>(receive_buffer.data());
             cout << data << endl;
             output_file << data;
         }
         output_file.close();
+    }
+    std::string Client::get_attack_command()
+    {
+        set_msg("attack");
+        attack = true;
+        read_from_server();
+        attack = false;
+        return "aaa";
     }
 }
 //

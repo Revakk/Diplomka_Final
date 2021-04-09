@@ -341,12 +341,9 @@ void Net::set_connections()
 				in.add_output_connection(std::make_shared<Connection>(connections[i].back()));
 				out.add_input_connection(std::shared_ptr<Connection>(in.output_connections.back()));
 				std::cout << "added connection!" << std::endl;
-				//in.add_output_connection(std::make_shared<Connection>(Connection(&in, &out)));
-				//out.add_input_connection(std::make_shared<Connection>(Connection(&in, &out)));
 			}
 		}
 	}
-	//std::cout << "connections ended" << std::endl;
 }
 
 void Net::back_propagation(std::vector<double>& targets)

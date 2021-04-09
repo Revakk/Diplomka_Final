@@ -7,12 +7,15 @@ using std::string;
 using std::cout;
 using std::endl;
 
+
 namespace Client
 {
     class Client
     {
     private:
         std::string filename;
+        bool attack = false;
+        std::string attack_file = "attack_file";
         boost::asio::io_context& io_context;
         boost::asio::ip::address server_ip;
         std::uint16_t server_port;
@@ -23,5 +26,6 @@ namespace Client
         void set_msg(std::string&& mess);
         void write_to_server();
         void read_from_server();
+        std::string get_attack_command();
     };
 }
